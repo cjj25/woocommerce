@@ -37,58 +37,73 @@ abstract class Abstract_WC_Order_Item_Type_Data_Store extends WC_Data_Store_WP i
 	/**
 	 * Create a new order item in the database.
 	 *
-	 * @since 3.0.0
 	 * @param WC_Order_Item $item Order item object.
+	 * @throws Exception
+	 * @since 3.0.0
 	 */
 	public function create( &$item ) {
 		global $wpdb;
-
-		$wpdb->insert(
-			$wpdb->prefix . 'woocommerce_order_items',
-			array(
-				'order_item_name' => $item->get_name(),
-				'order_item_type' => $item->get_type(),
-				'order_id'        => $item->get_order_id(),
-			)
-		);
-		$item->set_id( $wpdb->insert_id );
-		$this->save_item_data( $item, true );
-		$item->save_meta_data();
-		$item->apply_changes();
-		$this->clear_cache( $item );
-
-		do_action( 'woocommerce_new_order_item', $item->get_id(), $item, $item->get_order_id() );
-	}
-
-	/**
-	 * Update a order item in the database.
-	 *
-	 * @since 3.0.0
-	 * @param WC_Order_Item $item Order item object.
-	 */
-	public function update( &$item ) {
-		global $wpdb;
-
-		$changes = $item->get_changes();
-
-		if ( array_intersect( array( 'name', 'order_id' ), array_keys( $changes ) ) ) {
-			$wpdb->update(
+		try {
+			wc_transaction_query();
+			$wpdb->insert(
 				$wpdb->prefix . 'woocommerce_order_items',
 				array(
 					'order_item_name' => $item->get_name(),
 					'order_item_type' => $item->get_type(),
 					'order_id'        => $item->get_order_id(),
-				),
-				array( 'order_item_id' => $item->get_id() )
+				)
 			);
+			$item->set_id( $wpdb->insert_id );
+			$this->save_item_data( $item, true );
+			$item->save_meta_data();
+			$item->apply_changes();
+			wc_transaction_query( 'commit' );
+			$this->clear_cache( $item );
+
+			do_action( 'woocommerce_new_order_item', $item->get_id(), $item, $item->get_order_id() );
+		} catch ( \Exception $exception ) {
+			wc_transaction_query( 'rollback' );
+			throw $exception;
 		}
 
-		$this->save_item_data( $item );
-		$item->save_meta_data();
-		$item->apply_changes();
-		$this->clear_cache( $item );
+	}
 
-		do_action( 'woocommerce_update_order_item', $item->get_id(), $item, $item->get_order_id() );
+	/**
+	 * Update a order item in the database.
+	 *
+	 * @param WC_Order_Item $item Order item object.
+	 * @throws Exception
+	 * @since 3.0.0
+	 */
+	public function update( &$item ) {
+		global $wpdb;
+		try {
+			wc_transaction_query();
+			$changes = $item->get_changes();
+
+			if ( array_intersect( array( 'name', 'order_id' ), array_keys( $changes ) ) ) {
+				$wpdb->update(
+					$wpdb->prefix . 'woocommerce_order_items',
+					array(
+						'order_item_name' => $item->get_name(),
+						'order_item_type' => $item->get_type(),
+						'order_id'        => $item->get_order_id(),
+					),
+					array( 'order_item_id' => $item->get_id() )
+				);
+			}
+
+			$this->save_item_data( $item );
+			$item->save_meta_data();
+			$item->apply_changes();
+			wc_transaction_query( 'commit' );
+			$this->clear_cache( $item );
+
+			do_action( 'woocommerce_update_order_item', $item->get_id(), $item, $item->get_order_id() );
+		} catch ( \Exception $exception ) {
+			wc_transaction_query( 'rollback' );
+			throw $exception;
+		}
 	}
 
 	/**
