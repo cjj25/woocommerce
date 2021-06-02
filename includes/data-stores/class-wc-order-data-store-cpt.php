@@ -261,23 +261,23 @@ class WC_Order_Data_Store_CPT extends Abstract_WC_Order_Data_Store_CPT implement
 
 		// If address changed, store concatenated version to make searches faster.
 		if ( in_array( 'billing', $updated_props, true ) || ! metadata_exists( 'post', $id, '_billing_address_index' ) ) {
-			update_post_meta( $id, '_billing_address_index', implode( ' ', $order->get_address( 'billing' ) ) );
+			$this->update_or_delete_post_meta( $order, '_billing_address_index', implode( ' ', $order->get_address( 'billing' ) ) );
 		}
 		if ( in_array( 'shipping', $updated_props, true ) || ! metadata_exists( 'post', $id, '_shipping_address_index' ) ) {
-			update_post_meta( $id, '_shipping_address_index', implode( ' ', $order->get_address( 'shipping' ) ) );
+			$this->update_or_delete_post_meta( $order, '_shipping_address_index', implode( ' ', $order->get_address( 'shipping' ) ) );
 		}
 
 		// Legacy date handling. @todo remove in 4.0.
 		if ( in_array( 'date_paid', $updated_props, true ) ) {
 			$value = $order->get_date_paid( 'edit' );
 			// In 2.6.x date_paid was stored as _paid_date in local mysql format.
-			update_post_meta( $id, '_paid_date', ! is_null( $value ) ? $value->date( 'Y-m-d H:i:s' ) : '' );
+			$this->update_or_delete_post_meta( $order, '_paid_date', ! is_null( $value ) ? $value->date( 'Y-m-d H:i:s' ) : '' );
 		}
 
 		if ( in_array( 'date_completed', $updated_props, true ) ) {
 			$value = $order->get_date_completed( 'edit' );
 			// In 2.6.x date_completed was stored as _completed_date in local mysql format.
-			update_post_meta( $id, '_completed_date', ! is_null( $value ) ? $value->date( 'Y-m-d H:i:s' ) : '' );
+			$this->update_or_delete_post_meta( $order, '_completed_date', ! is_null( $value ) ? $value->date( 'Y-m-d H:i:s' ) : '' );
 		}
 
 		// If customer changed, update any downloadable permissions.
@@ -871,7 +871,7 @@ class WC_Order_Data_Store_CPT extends Abstract_WC_Order_Data_Store_CPT implement
 		} else {
 			update_post_caches( $query->posts ); // We already fetching posts, might as well hydrate some caches.
 			$order_ids = wp_list_pluck( $query->posts, 'ID' );
-			$orders = $this->compile_orders( $order_ids, $query_vars, $query );
+			$orders    = $this->compile_orders( $order_ids, $query_vars, $query );
 		}
 
 		if ( isset( $query_vars['paginate'] ) && $query_vars['paginate'] ) {
@@ -939,7 +939,7 @@ class WC_Order_Data_Store_CPT extends Abstract_WC_Order_Data_Store_CPT implement
 			$cache_keys_mapping[ $order_id ] = WC_Cache_Helper::get_cache_prefix( 'orders' ) . 'refunds' . $order_id;
 		}
 		$non_cached_ids = array();
-		$cache_values = wc_cache_get_multiple( array_values( $cache_keys_mapping ), 'orders' );
+		$cache_values   = wc_cache_get_multiple( array_values( $cache_keys_mapping ), 'orders' );
 		foreach ( $order_ids as $order_id ) {
 			if ( false === $cache_values[ $cache_keys_mapping[ $order_id ] ] ) {
 				$non_cached_ids[] = $order_id;
@@ -949,11 +949,11 @@ class WC_Order_Data_Store_CPT extends Abstract_WC_Order_Data_Store_CPT implement
 			return;
 		}
 
-		$refunds = wc_get_orders(
+		$refunds       = wc_get_orders(
 			array(
-				'type'   => 'shop_order_refund',
+				'type'            => 'shop_order_refund',
 				'post_parent__in' => $non_cached_ids,
-				'limit'  => - 1,
+				'limit'           => - 1,
 			)
 		);
 		$order_refunds = array_reduce(
@@ -999,13 +999,13 @@ class WC_Order_Data_Store_CPT extends Abstract_WC_Order_Data_Store_CPT implement
 				return;
 			}
 		}
-		$cache_keys = array_map(
+		$cache_keys     = array_map(
 			function ( $order_id ) {
 				return 'order-items-' . $order_id;
 			},
 			$order_ids
 		);
-		$cache_values = wc_cache_get_multiple( $cache_keys, 'orders' );
+		$cache_values   = wc_cache_get_multiple( $cache_keys, 'orders' );
 		$non_cached_ids = array();
 		foreach ( $order_ids as $order_id ) {
 			if ( false === $cache_values[ 'order-items-' . $order_id ] ) {
@@ -1016,9 +1016,9 @@ class WC_Order_Data_Store_CPT extends Abstract_WC_Order_Data_Store_CPT implement
 			return;
 		}
 
-		$non_cached_ids       = esc_sql( $non_cached_ids );
+		$non_cached_ids        = esc_sql( $non_cached_ids );
 		$non_cached_ids_string = implode( ',', $non_cached_ids );
-		$order_items = $wpdb->get_results(
+		$order_items           = $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			"SELECT order_item_type, order_item_id, order_id, order_item_name FROM {$wpdb->prefix}woocommerce_order_items WHERE order_id in ( $non_cached_ids_string ) ORDER BY order_item_id;"
 		);
@@ -1065,7 +1065,7 @@ class WC_Order_Data_Store_CPT extends Abstract_WC_Order_Data_Store_CPT implement
 		foreach ( $order_ids as $order_id ) {
 			$cache_keys_mapping[ $order_id ] = WC_Order::generate_meta_cache_key( $order_id, 'orders' );
 		}
-		$cache_values = wc_cache_get_multiple( array_values( $cache_keys_mapping ), 'orders' );
+		$cache_values   = wc_cache_get_multiple( array_values( $cache_keys_mapping ), 'orders' );
 		$non_cached_ids = array();
 		foreach ( $order_ids as $order_id ) {
 			if ( false === $cache_values[ $cache_keys_mapping[ $order_id ] ] ) {
@@ -1075,8 +1075,8 @@ class WC_Order_Data_Store_CPT extends Abstract_WC_Order_Data_Store_CPT implement
 		if ( empty( $non_cached_ids ) ) {
 			return;
 		}
-		$order_ids     = esc_sql( $non_cached_ids );
-		$order_ids_in  = "'" . implode( "', '", $order_ids ) . "'";
+		$order_ids           = esc_sql( $non_cached_ids );
+		$order_ids_in        = "'" . implode( "', '", $order_ids ) . "'";
 		$raw_meta_data_array = $wpdb->get_results(
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			"SELECT post_id as object_id, meta_id, meta_key, meta_value

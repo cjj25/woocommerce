@@ -52,7 +52,7 @@ class WC_Order_Item_Fee_Data_Store extends Abstract_WC_Order_Item_Type_Data_Stor
 	 * @since 3.0.0
 	 * @param WC_Order_Item_Fee $item Fee order item object.
 	 */
-	public function save_item_data( &$item ) {
+	public function save_item_data( &$item, $new_entry = false ) {
 		$id          = $item->get_id();
 		$save_values = array(
 			'_fee_amount'    => $item->get_amount( 'edit' ),
@@ -63,7 +63,11 @@ class WC_Order_Item_Fee_Data_Store extends Abstract_WC_Order_Item_Type_Data_Stor
 			'_line_tax_data' => $item->get_taxes( 'edit' ),
 		);
 		foreach ( $save_values as $key => $value ) {
-			update_metadata( 'order_item', $id, $key, $value );
+			if ( ! $new_entry ) {
+				update_metadata( 'order_item', $id, $key, $value );
+			} else {
+				add_metadata( 'order_item', $id, $key, $value );
+			}
 		}
 	}
 }

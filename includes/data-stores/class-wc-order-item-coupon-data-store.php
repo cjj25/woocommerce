@@ -49,14 +49,18 @@ class WC_Order_Item_Coupon_Data_Store extends Abstract_WC_Order_Item_Type_Data_S
 	 * @since 3.0.0
 	 * @param WC_Order_Item_Coupon $item Coupon order item.
 	 */
-	public function save_item_data( &$item ) {
+	public function save_item_data( &$item, $new_entry = false ) {
 		$id          = $item->get_id();
 		$save_values = array(
 			'discount_amount'     => $item->get_discount( 'edit' ),
 			'discount_amount_tax' => $item->get_discount_tax( 'edit' ),
 		);
 		foreach ( $save_values as $key => $value ) {
-			update_metadata( 'order_item', $id, $key, $value );
+			if ( ! $new_entry ) {
+				update_metadata( 'order_item', $id, $key, $value );
+			} else {
+				add_metadata( 'order_item', $id, $key, $value );
+			}
 		}
 	}
 }

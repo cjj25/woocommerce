@@ -426,13 +426,33 @@ abstract class Abstract_WC_Order_Data_Store_CPT extends WC_Data_Store_WP impleme
 		return $token_ids;
 	}
 
-	/**
-	 * Update token ids for an order.
-	 *
-	 * @param WC_Order $order Order object.
-	 * @param array    $token_ids Payment token ids.
-	 */
-	public function update_payment_token_ids( $order, $token_ids ) {
-		update_post_meta( $order->get_id(), '_payment_tokens', $token_ids );
-	}
+    /**
+     * Update token ids for an order.
+     *
+     * @param WC_Order $order Order object.
+     * @param array $token_ids Payment token ids.
+     */
+    public function update_payment_token_ids($order, $token_ids)
+    {
+        update_post_meta($order->get_id(), '_payment_tokens', $token_ids);
+    }
+
+
+    protected function update_or_delete_post_meta($order, $meta_key, $meta_value)
+    {
+        // Add the meta keys directly, don't lookup to see if they exist first
+        // Don't insert empty values unless they're part of the must_exist_meta_keys
+        if ('pending' === $order->get_status()) {
+            if (
+                (!in_array($meta_value, array(array(), ''), true)) ||
+                (in_array($meta_key, $this->must_exist_meta_keys, true))
+            ) {
+                return (bool)add_post_meta($order->get_id(), $meta_key, $meta_value);
+            } else {
+                // If it's empty and not part of the must_exist_meta_keys then don't insert it
+                return false;
+            }
+        }
+        return parent::update_or_delete_post_meta($order, $meta_key, $meta_value);
+    }
 }

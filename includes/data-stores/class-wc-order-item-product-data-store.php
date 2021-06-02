@@ -54,7 +54,7 @@ class WC_Order_Item_Product_Data_Store extends Abstract_WC_Order_Item_Type_Data_
 	 * @since 3.0.0
 	 * @param WC_Order_Item_Product $item Product order item object.
 	 */
-	public function save_item_data( &$item ) {
+	public function save_item_data( &$item, $new_entry = false ) {
 		$id                = $item->get_id();
 		$changes           = $item->get_changes();
 		$meta_key_to_props = array(
@@ -69,9 +69,12 @@ class WC_Order_Item_Product_Data_Store extends Abstract_WC_Order_Item_Type_Data_
 			'_line_tax_data'     => 'taxes',
 		);
 		$props_to_update   = $this->get_props_to_update( $item, $meta_key_to_props, 'order_item' );
-
 		foreach ( $props_to_update as $meta_key => $prop ) {
-			update_metadata( 'order_item', $id, $meta_key, $item->{"get_$prop"}( 'edit' ) );
+			if ( ! $new_entry ) {
+				update_metadata( 'order_item', $id, $meta_key, $item->{"get_$prop"}( 'edit' ) );
+			} else {
+				add_metadata( 'order_item', $id, $meta_key, $item->{"get_$prop"}( 'edit' ) );
+			}
 		}
 	}
 

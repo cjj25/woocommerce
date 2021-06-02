@@ -52,7 +52,7 @@ abstract class Abstract_WC_Order_Item_Type_Data_Store extends WC_Data_Store_WP i
 			)
 		);
 		$item->set_id( $wpdb->insert_id );
-		$this->save_item_data( $item );
+		$this->save_item_data( $item, true );
 		$item->save_meta_data();
 		$item->apply_changes();
 		$this->clear_cache( $item );
@@ -151,7 +151,7 @@ abstract class Abstract_WC_Order_Item_Type_Data_Store extends WC_Data_Store_WP i
 	 * @since 3.0.0
 	 * @param WC_Order_Item $item Order item object.
 	 */
-	public function save_item_data( &$item ) {}
+	public function save_item_data( &$item, $new_entry = false ) {}
 
 	/**
 	 * Clear meta cache.
